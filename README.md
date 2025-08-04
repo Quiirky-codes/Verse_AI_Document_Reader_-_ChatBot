@@ -71,3 +71,133 @@ conda install onnxruntime -c conda-forge
 
 > This step is required before running `pip install -r requirements.txt` due to compatibility issues.
 
+For Windows:
+
+* Install Microsoft C++ Build Tools from [this link](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
+
+* Set the environment variable as instructed in the final step of installation.
+
+**3. Install Python Dependencies**
+
+```
+pip install -r requirements.txt
+
+pip install "unstructured[md]"
+```
+
+# Create the Document Database
+
+To convert documents into embeddings and store them in ChromaDB:
+
+```
+python create_database.py
+```
+
+What this does:
+
+* Reads all documents from the specified directory.
+
+* Splits and embeds them using LangChain tools.
+
+* Stores them in a persistent ChromaDB instance.
+
+# Run the Backend API Server
+
+Start your backend API server:
+
+```
+python api.py
+```
+
+This exposes endpoints to:
+
+* Accept user queries.
+
+* Retrieve relevant document chunks using ChromaDB.
+
+* Send the final prompt to Gemini 1.5 Pro and return the response.
+
+Make sure your environment variable `GEMINI_API_KEY` is set.
+Create a `.env` file with:
+
+```
+GEMINI_API_KEY=your_actual_gemini_key_here
+```
+
+# Optional: Query from CLI
+You can also test the backend using this command:
+```
+python query_data.py "How does Alice meet the Mad Hatter?"
+```
+This script:
+
+* Uses the same RAG backend pipeline.
+
+* Queries stored embeddings.
+
+* Uses Gemini to generate an answer.
+
+
+# Frontend Setup
+
+**1. Navigate to the frontend folder**
+
+```
+cd verse-react-app
+```
+
+**2. Install frontend dependencies**
+
+```
+npm install
+```
+
+**3. Start the frontend server**
+
+```
+npm run dev
+```
+This starts a local development server for the React + Vite + Tailwind frontend. Make sure the backend `(api.py)` is running before using the chatbot interface.
+
+
+# Environment Variables
+
+You should create a .env file in your root folder with the following:
+
+```
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+> Only the Gemini key is required (OpenAI key is NOT used).
+
+
+# Example Queries
+
+Try the following questions after uploading your document:
+
+* “Summarize the main points of the second section.”
+
+* “What are the legal terms defined in the document?”
+
+* “Who is the author and what is their background?”
+
+* “Give me a timeline of events based on this file.”
+
+# Project Structure
+
+```
+LangChain-Rag/
+│
+├── create_database.py      # Converts documents to embeddings
+├── query_data.py           # CLI test script for querying
+├── api.py                  # Backend API using LangChain + Gemini
+├── requirements.txt        # Python dependencies
+├── verse-react-app/        # Frontend (React + Vite + Tailwind)
+└── .env                    # Contains your Gemini API key
+
+```
+
+
+
+
+
