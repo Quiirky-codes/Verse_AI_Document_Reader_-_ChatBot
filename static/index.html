@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verse - AI Document Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom scrollbar for a more modern look */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Glassmorphism effect class */
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        /* Animation for incoming messages */
+        .message-fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-blue-900 text-white font-sans antialiased" style="font-family: 'Inter', sans-serif;">
+
+    <div class="flex h-screen max-h-screen">
+        <aside id="sidebar" class="w-full md:w-80 lg:w-96 p-6 flex flex-col space-y-6 transition-all duration-300">
+            <div class="flex items-center space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path><path d="M8 7h6"></path><path d="M8 11h8"></path></svg>
+                <h1 class="text-2xl font-bold">Verse</h1>
+            </div>
+
+            <div class="glass-effect rounded-2xl p-4 flex flex-col items-center text-center">
+                <input type="file" id="file-upload" class="hidden" accept=".pdf,.txt,.md,.docx">
+                <button id="upload-button" class="w-full glass-effect hover:bg-white/20 transition-all duration-300 text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    <span>Upload Document</span>
+                </button>
+                <p id="file-name" class="text-sm text-gray-300 mt-3 truncate">No file selected.</p>
+                <p class="text-xs text-gray-400 mt-1">PDF, TXT, MD, DOCX</p>
+            </div>
+
+            <div class="glass-effect rounded-2xl p-4 space-y-3">
+                <h2 class="text-lg font-semibold mb-2">Chat</h2>
+                <button id="new-chat-btn" class="w-full text-left glass-effect hover:bg-white/20 transition-all duration-300 text-white py-3 px-4 rounded-xl flex items-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+                    <span>New Chat</span>
+                </button>
+                <button id="chat-history-btn" class="w-full text-left glass-effect hover:bg-white/20 transition-all duration-300 text-white py-3 px-4 rounded-xl flex items-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18l18-9-18-9z"></path><path d="M21 12H9"></path><path d="M9 6v12"></path></svg>
+                    <span>Chat History</span>
+                </button>
+            </div>
+
+            <div id="actions-panel" class="glass-effect rounded-2xl p-4 space-y-3 opacity-50 pointer-events-none">
+                 <h2 class="text-lg font-semibold mb-2">Actions</h2>
+                 <button data-action="summarize" class="action-btn w-full text-left glass-effect hover:bg-white/20 transition-all duration-300 text-white py-3 px-4 rounded-xl">Summarize Document</button>
+                 <button data-action="sections" class="action-btn w-full text-left glass-effect hover:bg-white/20 transition-all duration-300 text-white py-3 px-4 rounded-xl">Section-wise Summary</button>
+                 <button data-action="faqs" class="action-btn w-full text-left glass-effect hover:bg-white/20 transition-all duration-300 text-white py-3 px-4 rounded-xl">Generate FAQs</button>
+                 <button data-action="extract" class="action-btn w-full text-left glass-effect hover:bg-white/20 transition-all duration-300 text-white py-3 px-4 rounded-xl">Extract Entities & Keywords</button>
+            </div>
+            
+            <div class="flex-grow"></div>
+            <p class="text-xs text-center text-gray-500">Built by quiirky-codes</p>
+        </aside>
+
+        <main class="flex-1 flex flex-col bg-black/20 max-h-screen">
+            <div id="chat-log" class="flex-1 p-6 space-y-6 overflow-y-auto">
+                <div class="flex items-start space-x-4 message-fade-in">
+                    <div class="bg-blue-500 p-2 rounded-full flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"></path><rect x="4" y="12" width="16" height="8" rx="2"></rect><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="M17 12v-2a2 2 0 0 0-2-2h-1a2 2 0 0 0-2 2v2"></path></svg>
+                    </div>
+                    <div class="glass-effect rounded-2xl p-4 max-w-lg">
+                        <p class="font-semibold mb-1">Verse AI</p>
+                        <p class="text-gray-200">Hello! I'm your AI document assistant. Please upload a document to get started. You can ask me to summarize it, generate FAQs, or ask specific questions about its content.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6">
+                <div id="chat-input-container" class="glass-effect rounded-2xl flex items-center p-2 opacity-50 pointer-events-none">
+                    <input type="text" id="chat-input" placeholder="Ask a question about your document..." class="flex-1 bg-transparent p-3 text-white placeholder-gray-400 focus:outline-none">
+                    <button id="send-button" class="glass-effect hover:bg-white/20 transition-all duration-300 text-white font-semibold p-3 rounded-xl ml-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // DOM Elements
+        const uploadButton = document.getElementById('upload-button');
+        const fileUploadInput = document.getElementById('file-upload');
+        const fileNameDisplay = document.getElementById('file-name');
+        const actionsPanel = document.getElementById('actions-panel');
+        const chatInputContainer = document.getElementById('chat-input-container');
+        const chatLog = document.getElementById('chat-log');
+        const chatInput = document.getElementById('chat-input');
+        const sendButton = document.getElementById('send-button');
+        const actionButtons = document.querySelectorAll('.action-btn');
+        const newChatBtn = document.getElementById('new-chat-btn');
+        const chatHistoryBtn = document.getElementById('chat-history-btn');
+
+        const API_BASE_URL = 'http://127.0.0.1:5001';
+
+        let fileIsUploaded = false;
+        let chatHistory = JSON.parse(localStorage.getItem('verseAI_chatHistory') || '[]');
+        let currentChatId = null;
+
+        // --- EVENT LISTENERS ---
+
+        uploadButton.addEventListener('click', () => fileUploadInput.click());
+
+        fileUploadInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            fileNameDisplay.textContent = 'Uploading & Processing...';
+            fileNameDisplay.classList.remove('text-gray-300', 'text-blue-300');
+            fileNameDisplay.classList.add('text-yellow-400');
+
+            const formData = new FormData();
+            formData.append('document', file);
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/upload`, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to upload and process file.');
+                }
+
+                const result = await response.json();
+                fileNameDisplay.textContent = file.name;
+                fileNameDisplay.classList.remove('text-yellow-400');
+                fileNameDisplay.classList.add('text-blue-300');
+                addBotMessage(result.message || "Document processed successfully. What's next?");
+                enableChat();
+            } catch (error) {
+                console.error('Upload error:', error);
+                fileNameDisplay.textContent = 'Upload failed.';
+                fileNameDisplay.classList.remove('text-yellow-400');
+                fileNameDisplay.classList.add('text-red-400');
+                addBotMessage(`Error: ${error.message}`);
+            }
+        });
+
+        sendButton.addEventListener('click', handleUserQuery);
+        chatInput.addEventListener('keydown', (e) => e.key === 'Enter' && handleUserQuery());
+
+        newChatBtn.addEventListener('click', startNewChat);
+        chatHistoryBtn.addEventListener('click', showChatHistory);
+
+        // ✨ UPDATED: Action button event listener to include new feature
+        actionButtons.forEach(button => {
+            button.addEventListener('click', async () => {
+                const action = button.dataset.action;
+                const promptText = button.textContent;
+                addUserMessage(promptText);
+                showTypingIndicator();
+
+                // Maps frontend actions to backend endpoints
+                const endpointMap = {
+                    'summarize': 'summary',
+                    'sections': 'section_summary',
+                    'faqs': 'generate_faqs',
+                    'extract': 'extract' // New action mapping
+                };
+
+                try {
+                    const response = await fetch(`${API_BASE_URL}/${endpointMap[action]}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || `Failed to perform action: ${action}`);
+                    }
+
+                    const data = await response.json();
+                    
+                    // Handle different response formats based on the action
+                    let responseText;
+                    if (action === 'summarize') {
+                        responseText = data.summary;
+                    } else if (action === 'sections') {
+                        responseText = data.sections.join('\n\n');
+                    } else if (action === 'faqs') {
+                        responseText = data.faqs;
+                    } else if (action === 'extract') {
+                        responseText = data.extraction; // Handle new extraction response
+                    }
+                    
+                    addBotMessage(responseText, 0);
+                } catch (error) {
+                    console.error(`Action error (${action}):`, error);
+                    addBotMessage(`Error: ${error.message}`, 0);
+                }
+            });
+        });
+
+        // --- UI & API FUNCTIONS ---
+
+        async function handleUserQuery() {
+            const query = chatInput.value.trim();
+            if (!query) return;
+
+            addUserMessage(query);
+            chatInput.value = '';
+            showTypingIndicator();
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/ask`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to get an answer.');
+                }
+
+                const data = await response.json();
+                addBotMessage(data.answer, 0);
+            } catch (error) {
+                console.error('Query error:', error);
+                addBotMessage(`Error: ${error.message}`, 0);
+            }
+        }
+
+        function enableChat() {
+            if (fileIsUploaded) return;
+            fileIsUploaded = true;
+            actionsPanel.classList.remove('opacity-50', 'pointer-events-none');
+            chatInputContainer.classList.remove('opacity-50', 'pointer-events-none');
+        }
+
+        function addUserMessage(message) {
+            const messageEl = document.createElement('div');
+            messageEl.className = 'flex items-start justify-end space-x-4 message-fade-in';
+            messageEl.innerHTML = `
+                <div class="glass-effect bg-blue-600/50 rounded-2xl p-4 max-w-lg">
+                    <p>${message}</p>
+                </div>
+                <div class="bg-gray-600 p-2 rounded-full flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                </div>
+            `;
+            chatLog.appendChild(messageEl);
+            scrollToBottom();
+        }
+
+        function showTypingIndicator() {
+            const existingIndicator = document.querySelector('.typing-indicator');
+            if (existingIndicator) existingIndicator.remove();
+
+            const typingIndicator = document.createElement('div');
+            typingIndicator.className = 'flex items-start space-x-4 message-fade-in typing-indicator';
+            typingIndicator.innerHTML = `
+                <div class="bg-blue-500 p-2 rounded-full flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"></path><rect x="4" y="12" width="16" height="8" rx="2"></rect><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="M17 12v-2a2 2 0 0 0-2-2h-1a2 2 0 0 0-2 2v2"></path></svg>
+                </div>
+                <div class="glass-effect rounded-2xl p-4 max-w-lg">
+                    <div class="flex space-x-1">
+                        <span class="w-2 h-2 bg-gray-300 rounded-full animate-pulse" style="animation-delay: 0s;"></span>
+                        <span class="w-2 h-2 bg-gray-300 rounded-full animate-pulse" style="animation-delay: 0.2s;"></span>
+                        <span class="w-2 h-2 bg-gray-300 rounded-full animate-pulse" style="animation-delay: 0.4s;"></span>
+                    </div>
+                </div>
+            `;
+            chatLog.appendChild(typingIndicator);
+            scrollToBottom();
+        }
+
+        function addBotMessage(message, delay = 0) {
+            const typingIndicator = document.querySelector('.typing-indicator');
+            if (typingIndicator) typingIndicator.remove();
+
+            setTimeout(() => {
+                const messageEl = document.createElement('div');
+                messageEl.className = 'flex items-start space-x-4 message-fade-in';
+                messageEl.innerHTML = `
+                    <div class="bg-blue-500 p-2 rounded-full flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"></path><rect x="4" y="12" width="16" height="8" rx="2"></rect><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="M17 12v-2a2 2 0 0 0-2-2h-1a2 2 0 0 0-2 2v2"></path></svg>
+                    </div>
+                    <div class="glass-effect rounded-2xl p-4 max-w-lg">
+                        <p class="font-semibold mb-1">Verse AI</p>
+                        <p class="text-gray-200 whitespace-pre-wrap">${message}</p>
+                    </div>
+                `;
+                chatLog.appendChild(messageEl);
+                scrollToBottom();
+            }, delay);
+        }
+
+        function scrollToBottom() {
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        // --- CHAT MANAGEMENT FUNCTIONS (No changes needed here) ---
+
+        function startNewChat() {
+            saveCurrentChat();
+            currentChatId = generateChatId();
+            fileIsUploaded = false;
+            clearChatLog();
+            resetFileUpload();
+            disableChat();
+            addWelcomeMessage();
+        }
+
+        function saveCurrentChat() {
+            const messages = Array.from(chatLog.children);
+            if (messages.length <= 1) return;
+            
+            const chatData = {
+                id: currentChatId || generateChatId(),
+                timestamp: new Date().toISOString(),
+                fileName: fileNameDisplay.textContent !== 'No file selected.' ? fileNameDisplay.textContent : null,
+                messages: messages.map(msg => ({
+                    type: msg.querySelector('.bg-gray-600') ? 'user' : 'bot',
+                    content: msg.querySelector('p:last-child')?.textContent || msg.querySelector('p')?.textContent || '',
+                    timestamp: new Date().toISOString()
+                }))
+            };
+            
+            chatHistory = chatHistory.filter(chat => chat.id !== chatData.id);
+            chatHistory.unshift(chatData);
+            chatHistory = chatHistory.slice(0, 10);
+            localStorage.setItem('verseAI_chatHistory', JSON.stringify(chatHistory));
+        }
+
+        function showChatHistory() {
+            if (chatHistory.length === 0) {
+                addBotMessage("No chat history found. Start a conversation to build your history!");
+                return;
+            }
+            
+            clearChatLog();
+            
+            const historyContainer = document.createElement('div');
+            historyContainer.className = 'space-y-4';
+            historyContainer.innerHTML = `
+                <div class="flex items-start space-x-4 message-fade-in">
+                    <div class="bg-blue-500 p-2 rounded-full flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18l18-9-18-9z"></path><path d="M21 12H9"></path><path d="M9 6v12"></path></svg>
+                    </div>
+                    <div class="glass-effect rounded-2xl p-4 max-w-2xl">
+                        <p class="font-semibold mb-3">Chat History</p>
+                        <div class="space-y-2">
+                            ${chatHistory.map((chat, index) => `
+                                <div class="glass-effect rounded-xl p-3 cursor-pointer hover:bg-white/10 transition-all duration-300" onclick="loadChat('${chat.id}')">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <p class="font-medium text-sm">${chat.fileName || 'No document'}</p>
+                                            <p class="text-xs text-gray-400">${new Date(chat.timestamp).toLocaleDateString()} ${new Date(chat.timestamp).toLocaleTimeString()}</p>
+                                            <p class="text-xs text-gray-300 mt-1">${chat.messages.length} messages</p>
+                                        </div>
+                                        <button onclick="event.stopPropagation(); deleteChat('${chat.id}')" class="text-red-400 hover:text-red-300 text-xs">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            chatLog.appendChild(historyContainer);
+            scrollToBottom();
+        }
+
+        function loadChat(chatId) {
+            const chat = chatHistory.find(c => c.id === chatId);
+            if (!chat) return;
+            
+            saveCurrentChat();
+            
+            currentChatId = chatId;
+            clearChatLog();
+            
+            if (chat.fileName) {
+                fileNameDisplay.textContent = chat.fileName;
+                fileNameDisplay.classList.remove('text-gray-300');
+                fileNameDisplay.classList.add('text-blue-300');
+                enableChat();
+            } else {
+                resetFileUpload();
+                disableChat();
+            }
+            
+            chat.messages.forEach(msg => {
+                if (msg.type === 'user') {
+                    addUserMessage(msg.content);
+                } else {
+                    addBotMessage(msg.content, 0);
+                }
+            });
+        }
+
+        function deleteChat(chatId) {
+            chatHistory = chatHistory.filter(chat => chat.id !== chatId);
+            localStorage.setItem('verseAI_chatHistory', JSON.stringify(chatHistory));
+            showChatHistory();
+        }
+
+        function clearChatLog() {
+            chatLog.innerHTML = '';
+        }
+
+        function resetFileUpload() {
+            fileNameDisplay.textContent = 'No file selected.';
+            fileNameDisplay.classList.remove('text-blue-300', 'text-yellow-400', 'text-red-400');
+            fileNameDisplay.classList.add('text-gray-300');
+            fileUploadInput.value = '';
+        }
+
+        function disableChat() {
+            actionsPanel.classList.add('opacity-50', 'pointer-events-none');
+            chatInputContainer.classList.add('opacity-50', 'pointer-events-none');
+        }
+
+        function addWelcomeMessage() {
+            const welcomeMessage = document.createElement('div');
+            welcomeMessage.className = 'flex items-start space-x-4 message-fade-in';
+            welcomeMessage.innerHTML = `
+                <div class="bg-blue-500 p-2 rounded-full flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"></path><rect x="4" y="12" width="16" height="8" rx="2"></rect><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="M17 12v-2a2 2 0 0 0-2-2h-1a2 2 0 0 0-2 2v2"></path></svg>
+                </div>
+                <div class="glass-effect rounded-2xl p-4 max-w-lg">
+                    <p class="font-semibold mb-1">Verse AI</p>
+                    <p class="text-gray-200">Hello! I'm your AI document assistant. Please upload a document to get started. You can ask me to summarize it, generate FAQs, or ask specific questions about its content.</p>
+                </div>
+            `;
+            chatLog.appendChild(welcomeMessage);
+        }
+
+        function generateChatId() {
+            return 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        window.loadChat = loadChat;
+        window.deleteChat = deleteChat;
+
+        const originalAddUserMessage = addUserMessage;
+        const originalAddBotMessage = addBotMessage;
+        
+        addUserMessage = function(message) {
+            originalAddUserMessage(message);
+            setTimeout(() => saveCurrentChat(), 100);
+        };
+        
+        addBotMessage = function(message, delay = 0) {
+            originalAddBotMessage(message, delay);
+            setTimeout(() => saveCurrentChat(), delay + 100);
+        };
+    </script>
+</body>
+</html>
