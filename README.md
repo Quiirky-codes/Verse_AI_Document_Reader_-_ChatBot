@@ -197,9 +197,9 @@ LangChain-Rag/
 
 ```
 
-# LICENCE
+# LICENSE
 
-Licence
+MIT License
 
 
 
