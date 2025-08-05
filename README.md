@@ -197,6 +197,9 @@ LangChain-Rag/
 
 ```
 
+# LICENCE
+
+Licence
 
 
 
